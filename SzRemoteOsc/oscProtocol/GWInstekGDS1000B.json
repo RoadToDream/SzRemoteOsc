@@ -1,0 +1,238 @@
+{
+    "AUTOSet" :{
+        "Name": "AUTOSet",
+        "DoesQuery": false,
+        "Protocol": [
+            {
+                "Prefix": ":AUTOSet"
+            }
+        ]
+    },
+    "RUN" :{
+        "Name": "RUN",
+        "DoesQuery": false,
+        "Protocol": [
+            {
+                "Prefix": ":RUN"
+            }
+        ]
+    },
+    "STOP" :{
+        "Name": "STOP",
+        "DoesQuery": false,
+        "Protocol": [
+            {
+                "Prefix": ":STOP"
+            }
+        ]
+    },
+    "SINGle" :{
+        "Name": "SINGle",
+        "DoesQuery": false,
+        "Protocol": [
+            {
+                "Prefix": ":SINGle"
+            }
+        ]
+    },
+    "CHANnelDISPlay": {
+        "Name": "CHANnelDISPlay",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":DISPlay",
+                "Format": ["ON","OFF"]
+            }
+        ]
+    },
+    "CHANnelPOSition": {
+        "Name": "CHANnelPOSition",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":POSition",
+                "Format": ["float"]
+            }
+        ]
+    },
+    "CHANnelSCALe": {
+        "Name": "CHANnelSCALe",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":SCALe",
+                "Format": ["float"]
+            }
+        ]
+    },
+    "CHANnelCOUPling": {
+        "Name": "CHANnelCOUPling",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":COUPling",
+                "Format": ["AC", "DC", "GND"]
+            }
+        ]
+    },
+    "CHANnelINVert": {
+        "Name": "CHANnelINVert",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":INVert",
+                "Format": ["ON", "OFF"]
+            }
+        ]
+    },
+    "CHANnelBWLimit": {
+        "Name": "CHANnelBWLimit",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":BWLimit",
+                "Format": ["FULL", "20E+6"]
+            }
+        ]
+    },
+    "CHANnelEXPand": {
+        "Name": "CHANnelEXPand",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":EXPand",
+                "Format": ["GND", "CENTer"]
+            }
+        ]
+    },
+    "CHANnelPROBeTYPe": {
+        "Name": "CHANnelPROBeTYPe",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":PROBe:TYPe",
+                "Format": ["VOLTage", "CURRent"]
+            }
+        ]
+    },
+    "CHANnelPROBeRATio": {
+        "Name": "CHANnelPROBeRATio",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":PROBe:RATio",
+                "Format": ["float"]
+            }
+        ]
+    },
+    "CHANnelDESKew": {
+        "Name": "CHANnelDESKew",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":CHANnel",
+                "Format": ["1","2","3","4"]
+            },
+            {
+                "Prefix": ":DESKew",
+                "Format": ["float"]
+            }
+        ]
+    },
+    "TIMebaseMODe" :{
+        "Name": "TIMebaseMODe",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":TIMebase:MODe",
+                "Format": ["MAIN","WINDow","XY"]
+            }
+        ]
+    },
+    "TIMebaseEXPand" :{
+        "Name": "TIMebaseEXPand",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":TIMebase:EXPand",
+                "Format": ["CENTer","TRIGger"]
+            }
+        ]
+    },
+    "TIMebaseSCALe" :{
+        "Name": "TIMebaseSCALe",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":TIMebase:SCALe",
+                "Format": ["float"]
+            }
+        ]
+    },
+    "TIMebasePOSition" :{
+        "Name": "TIMebasePOSition",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":TIMebase:POSition",
+                "Format": ["float"]
+            }
+        ]
+    },
+    "TIMebaseWINDowSCALe" :{
+        "Name": "TIMebaseWINDowSCALe",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":TIMebase:WINDow:SCALe",
+                "Format": ["float"]
+            }
+        ]
+    },
+    "TIMebaseWINDowPOSition" :{
+        "Name": "TIMebaseWINDowPOSition",
+        "DoesQuery": true,
+        "Protocol": [
+            {
+                "Prefix": ":TIMebase:WINDow:POSition",
+                "Format": ["float"]
+            }
+        ]
+    }
+}
