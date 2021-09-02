@@ -5,6 +5,10 @@ SzRemoteOsc assists you use your GW Instek Oscilloscope more confident.
 
 **Please note this project is still at an early stage, please use with care. Hope it will be helpful**
 
+## Usage
+
+Download from [latest release](https://github.com/RoadToDream/SzRemoteOsc/releases/latest) and run, app is packaged with PyInstaller, macOS and Windows version provided. 
+
 ## Deploy
 Require Anaconda installed, run following to setup environment
 
