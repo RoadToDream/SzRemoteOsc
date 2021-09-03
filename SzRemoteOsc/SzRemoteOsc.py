@@ -9,7 +9,9 @@ from PyQt5.QtWidgets import QAction, QApplication, QMainWindow
 from PyQt5.QtCore import QThread, QTimer, Qt, pyqtSignal, pyqtSlot, QSettings, QSize, QMetaObject
 from PyQt5.QtWidgets import (QLabel, QWidget, QPushButton, QVBoxLayout,
                                 QApplication, QHBoxLayout, QDial, QLineEdit, 
-                                QSizePolicy, QScrollArea, QMenu)
+                                QSizePolicy, QScrollArea, QMenu, QMessageBox, 
+                                QFileDialog)
+
 from PyQt5.QtGui import QPixmap, QImage
 
 from PyQtAds import QtAds
@@ -41,11 +43,12 @@ class SzRemoteOscMain(QMainWindow):
 
     def setupServer(self):
         self.serverThread=QThread()
-        self.serverThreadConfig=remoteOscServer(self.getConnectionSetting())
+        self.serverThreadConfig=remoteOscServer(self.getUserSetting())
     
     def createMenuBar(self):
         menuBar = self.menuBar()
         menuBar.setNativeMenuBar(False)
+        self.fileMenu = menuBar.addMenu("&File")
         self.connectionMenu = menuBar.addMenu("&Connection")
         self.windowMenu = menuBar.addMenu("&Window")
 
@@ -71,7 +74,7 @@ class SzRemoteOscMain(QMainWindow):
 
         self.setCentralWidget(self.m_DockManager)
 
-        self.widgetPopupSetting = ui.widgetPopupSetting(self.getConnectionSetting())
+        self.widgetPopupSetting = ui.widgetPopupSetting(self.getUserSetting())
 
         self.setWindowTitle('SzRemoteOsc')
 
@@ -85,9 +88,16 @@ class SzRemoteOscMain(QMainWindow):
 
     
     def connectActions(self):
+
+        fileSaveImageAction = QAction("&Save Image", self)
         connectionAction = QAction("&Connect", self)
+
+        fileSaveImageAction.triggered.connect(self.showSaveImagePanel)
         connectionAction.triggered.connect(self.showConnectionPanel)
+
+        self.fileMenu.addAction(fileSaveImageAction)
         self.connectionMenu.addAction(connectionAction) 
+
         self.widgetPopupSetting.requestConnectOsc.connect(self.connectOsc)
         self.widgetPopupSetting.requestDisconnectOsc.connect(self.disconnectOsc)
 
@@ -96,6 +106,7 @@ class SzRemoteOscMain(QMainWindow):
         self.requestCompleteConfig.connect(self.serverThreadConfig.requestCompleteConfig)
 
         self.serverThreadConfig.resultCompleteConfig.connect(self.update)
+        self.serverThreadConfig.connectionError.connect(self.notifyConnectError)
 
         self.timerConfigUpdate.timeout.connect(self.requestCompleteConfig)
 
@@ -104,6 +115,24 @@ class SzRemoteOscMain(QMainWindow):
         self.widgetPopupSetting.close()
         event.accept()
 
+    def showSaveImagePanel(self):
+        self.getUserSetting()
+        if self.userSetting.value('pathSaveImage') is None:
+            if sys.platform == 'darwin':
+                desktopPath = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop/untitled.png') 
+            elif sys.platform == 'win32':
+                desktopPath = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop/untitled.png')
+            self.userSetting.setValue('pathSaveImage',desktopPath)
+
+
+        imagePath = QFileDialog().getSaveFileName(self,'Save Image',self.userSetting.value('pathSaveImage'), filter="Images (*.png *.jpg)")
+        if imagePath[0] != '':
+            pixmapRemoteDisplay = self.findChild(QLabel,name='labelMonitor').pixmap()
+            self.userSetting.setValue('pathSaveImage',imagePath[0])
+            if pixmapRemoteDisplay:
+                pixmapRemoteDisplay.save(imagePath[0])
+
+            
     def showConnectionPanel(self):
         self.widgetPopupSetting.show()
         
@@ -163,7 +192,7 @@ class SzRemoteOscMain(QMainWindow):
         self.windowMenu.addAction(dockWidgetMeasure.toggleViewAction())
         return dockWidgetMeasure
 
-    def getConnectionSetting(self) -> object:
+    def getUserSetting(self) -> object:
         self.userSetting= QSettings('RoadToDreamTech','SzRemoteOsc')
         userIP = self.userSetting.value('ip')
         userPort = self.userSetting.value('port')
@@ -178,7 +207,7 @@ class SzRemoteOscMain(QMainWindow):
         if not self.connectStatus:
             status = [False]
             self.event = threading.Event()
-            self.serverThreadConfig.setting = self.getConnectionSetting()
+            self.serverThreadConfig.setting = self.getUserSetting()
             self.serverThread.started.connect(self.serverThreadConfig.start)
             self.serverThreadConfig.moveToThread(self.serverThread)
             self.serverThread.start()
@@ -212,6 +241,14 @@ class SzRemoteOscMain(QMainWindow):
             self.serverThread.quit()
             self.serverThread.wait()
             self.connectStatus = False
+
+    @pyqtSlot()
+    def notifyConnectError(self):
+        msgError = QMessageBox()
+        msgError.setIcon(QMessageBox.Warning)
+        msgError.setText('Connection Error')
+        msgError.setInformativeText('Unable to connect to oscilloscope, please check \n 1. Your oscilloscope\'s ethernet cable connection. \n2. IP address and port on your oscilloscope.')
+        msgError.exec()
 
     def getCompleteConfig(self):
         self.requestCompleteConfig.emit()

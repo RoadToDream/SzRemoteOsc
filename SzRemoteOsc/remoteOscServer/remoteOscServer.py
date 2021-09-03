@@ -4,7 +4,6 @@ import numpy as np
 import pyvisa as visa
 import sys
 import os
-import re
 import json
 import threading
 
@@ -20,19 +19,18 @@ class remoteOscServer(QObject):
     resultACQuireMEMory = pyqtSignal(object)
     resultConfig = pyqtSignal(object)
     resultCompleteConfig = pyqtSignal(object)
+    connectionError = pyqtSignal()
 
     def __init__(self, setting):
         super().__init__()
-        self.setPath()
         self.setting = setting
 
-    def setPath(self):
+    def resourcePath(self,relativePath):
         try:
             root = sys._MEIPASS
-        except:
+        except Exception:
             root = os.path.abspath(".")
-        sys.path.append(root)
-        
+        return os.path.join(root, relativePath)
 
     @pyqtSlot()
     def start(self):
@@ -47,13 +45,14 @@ class remoteOscServer(QObject):
             self.data = bytes(bytearray(b'\x00'*length))
             self.pdata = ctypes.create_string_buffer(self.data, length)
             if sys.platform == 'darwin':
-                self.libc = ctypes.cdll.LoadLibrary('lib/libparseOutput.dylib')
+                print(self.resourcePath('.'))
+                self.libc = ctypes.cdll.LoadLibrary(self.resourcePath('lib/libparseOutput.dylib'))
             elif sys.platform == 'win32':
-                self.libc = ctypes.cdll.LoadLibrary('lib/libparseOutput.dll')
+                self.libc = ctypes.cdll.LoadLibrary(self.resourcePath('lib/libparseOutput.dll'))
 
         except Exception as e:
-            print('test')
-        with open('oscProtocol/GWInstekGDS1000B.json') as fp:
+            print(e.args)
+        with open(self.resourcePath('oscProtocol/GWInstekGDS1000B.json')) as fp:
             self.protocolConfig = json.load(fp)
 
     @pyqtSlot(threading.Event)
@@ -74,6 +73,8 @@ class remoteOscServer(QObject):
         except:
             status[0] = False
             events.set()
+            self.connectionError.emit()
+
 
     @pyqtSlot()
     def requestCompleteConfig(self):

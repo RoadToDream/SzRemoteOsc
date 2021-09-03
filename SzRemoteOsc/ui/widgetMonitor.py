@@ -19,7 +19,7 @@ class widgetMonitor(QWidget):
 
     def load_ui(self):
         layout = QHBoxLayout()
-        self.labelMonitor = QLabel()
+        self.labelMonitor = QLabel(objectName='labelMonitor')
         layout.addWidget(self.labelMonitor)
         self.setLayout(layout)
 
