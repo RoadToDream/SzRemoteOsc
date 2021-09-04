@@ -10,4 +10,4 @@ class widgetRef(QWidget):
         super(widgetRef, self).__init__()
 
     def minimumSizeHint(self) -> QSize:
-        return QSize(400, 30)
+        return QSize(500, 30)

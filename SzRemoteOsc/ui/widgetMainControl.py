@@ -8,50 +8,6 @@ from PyQt5.QtWidgets import (QLabel, QWidget, QPushButton, QVBoxLayout, QFrame,
 from PyQt5.QtGui import QPixmap, QImage
 from .widgetCustom import *
 
-class spinBoxWithPreset(QDoubleSpinBox):
-    def __init__(self,acceptedValues,decimals, objectName):
-        super().__init__(objectName=objectName)
-        self.acceptedValues = acceptedValues
-        self.setDecimals(decimals)
-        self.setRange(self.acceptedValues[0],self.acceptedValues[-1])
-
-    def stepBy(self, steps: int) -> None:
-        index = max(0,self.acceptedValues.index(self.value()) + steps)% len(self.acceptedValues)
-        self.setValue(self.acceptedValues[index])
-
-class spinBoxDelayedSignal(QDoubleSpinBox):
-    valueChangedDelayed = pyqtSignal(float)
-    def __init__(self):
-        super().__init__()
-        self.timer = QTimer()
-        self.timer.setSingleShot(True)
-        self.timer.setInterval(200)
-        self.valueChanged.connect(self.startTimer)
-        self.timer.timeout.connect(self.emitValueChanged)
-
-    def startTimer(self):
-        self.timer.start()
-
-    def emitValueChanged(self):
-        self.valueChangedDelayed.emit(self.value())
-
-
-class sectionButton(QPushButton):
-    def __init__(self, item, text = "", parent = None):
-        super().__init__(text, parent)
-        self.notExpandedIcon = self.style().standardIcon(getattr(QStyle, 'SP_MediaPlay'))
-        self.ExpandedIcon = self.style().standardIcon(getattr(QStyle, 'SP_TitleBarUnshadeButton'))
-        self.setStyleSheet("text-align:left;background-color: #AAAAAA;")
-        self.section = item
-        self.clicked.connect(self.on_clicked)
-        self.setFocusPolicy(Qt.NoFocus)
-        self.setIcon(self.ExpandedIcon if self.section.isExpanded() else self.notExpandedIcon)
-
-    def on_clicked(self):
-        self.section.setExpanded(not self.section.isExpanded())
-        self.setIcon((self.ExpandedIcon if self.section.isExpanded() else self.notExpandedIcon))
-
-
 class widgetMainControl(QWidget):
     def __init__(self,serverThreadConfig):
         super(widgetMainControl, self).__init__()
@@ -98,9 +54,10 @@ class widgetMainControl(QWidget):
         if not serverConfig == {}:   
             for section in self.sections:
                 section[1].update(serverConfig)
+
     
     def minimumSizeHint(self) -> QSize:
-        return QSize(400, 30)
+        return QSize(500, 30)
 
 class widgetSectionShortcut(QWidget):
     request = pyqtSignal(str,object)
@@ -149,6 +106,9 @@ class widgetSectionShortcut(QWidget):
 
 class widgetSectionChannelVerticalScale(QWidget):
     request = pyqtSignal(str,object)
+    holdUpdate = False
+    enableUpdate = True
+
     def __init__(self):
         super(widgetSectionChannelVerticalScale, self).__init__()
         self.load_ui()
@@ -168,21 +128,23 @@ class widgetSectionChannelVerticalScale(QWidget):
 
         for i in range(1,8):
             if i%2 == 1:
-                channelVerticalWidget = QWidget(objectName='channelVerticalWidget'+str(int((i+1)/2)))
+                channelVerticalWidget = QWidget()
                 channelVerticalWidgetLayout = QVBoxLayout()
-                self.checkboxChannelDisplay.append(QCheckBox(objectName='CHANnel'+str(int((i+1)/2))+'DISPlay'))
-                self.spinboxChannelPosition.append(QDoubleSpinBox(objectName='CHANnel'+str(int((i+1)/2))+'POSition'))
-                self.spinboxChannelScale.append(spinBoxWithPreset([1e-3,2e-3,5e-3,1e-2,2e-2,5e-2,1e-1,2e-1,5e-1,1e0,2e0,5e0,1e1],3,objectName='CHANnel'+str(int((i+1)/2))+'SCALe'))
+                self.checkboxChannelDisplay.append(QCheckBox())
+                self.spinboxChannelPosition.append(spinBoxDelayedSignal())
+                self.spinboxChannelScale.append(spinBoxWithPresetDelayedSignal([1e-3,2e-3,5e-3,1e-2,2e-2,5e-2,1e-1,2e-1,5e-1,1e0,2e0,5e0,1e1],3,objectName='CHANnel'+str(int((i+1)/2))+'SCALe'))
                 
+                # self.spinboxChannelPosition[int((i-1)/2)].setDecimals(3)
                 self.spinboxChannelPosition[int((i-1)/2)].setRange(-125,125)
-
                 self.spinboxChannelPosition[int((i-1)/2)].lineEdit().setReadOnly(True)
+
                 self.spinboxChannelScale[int((i-1)/2)].lineEdit().setReadOnly(True)
 
                 channelVerticalWidgetLayout.addWidget(QLabel('Channel'+str(int((i+1)/2))),alignment=Qt.AlignHCenter)
                 channelVerticalWidgetLayout.addWidget(self.checkboxChannelDisplay[int((i-1)/2)],alignment=Qt.AlignHCenter)
                 channelVerticalWidgetLayout.addWidget(QLabel('Position'))
                 channelVerticalWidgetLayout.addWidget(self.spinboxChannelPosition[int((i-1)/2)],alignment=Qt.AlignHCenter)
+
                 channelVerticalWidgetLayout.addWidget(QLabel('Scale'))
                 channelVerticalWidgetLayout.addWidget(self.spinboxChannelScale[int((i-1)/2)],alignment=Qt.AlignHCenter)
                 channelVerticalWidget.setLayout(channelVerticalWidgetLayout)
@@ -203,23 +165,40 @@ class widgetSectionChannelVerticalScale(QWidget):
         self.checkboxChannelDisplay[1].toggled.connect(self.channel2Display)
         self.checkboxChannelDisplay[2].toggled.connect(self.channel3Display)
         self.checkboxChannelDisplay[3].toggled.connect(self.channel4Display)
-        self.spinboxChannelPosition[0].valueChanged.connect(self.channel1Position)
-        self.spinboxChannelPosition[1].valueChanged.connect(self.channel2Position)
-        self.spinboxChannelPosition[2].valueChanged.connect(self.channel3Position)
-        self.spinboxChannelPosition[3].valueChanged.connect(self.channel4Position)
-        self.spinboxChannelScale[0].valueChanged.connect(self.channel1Scale)
-        self.spinboxChannelScale[1].valueChanged.connect(self.channel2Scale)
-        self.spinboxChannelScale[2].valueChanged.connect(self.channel3Scale)
-        self.spinboxChannelScale[3].valueChanged.connect(self.channel4Scale)
-        
+        self.spinboxChannelPosition[0].valueChanged.connect(self.disableUpdate)
+        self.spinboxChannelPosition[1].valueChanged.connect(self.disableUpdate)
+        self.spinboxChannelPosition[2].valueChanged.connect(self.disableUpdate)
+        self.spinboxChannelPosition[3].valueChanged.connect(self.disableUpdate)
+        self.spinboxChannelPosition[0].valueChangedDelayed.connect(self.channel1Position)
+        self.spinboxChannelPosition[1].valueChangedDelayed.connect(self.channel2Position)
+        self.spinboxChannelPosition[2].valueChangedDelayed.connect(self.channel3Position)
+        self.spinboxChannelPosition[3].valueChangedDelayed.connect(self.channel4Position)
+        self.spinboxChannelScale[0].valueChanged.connect(self.disableUpdate)
+        self.spinboxChannelScale[1].valueChanged.connect(self.disableUpdate)
+        self.spinboxChannelScale[2].valueChanged.connect(self.disableUpdate)
+        self.spinboxChannelScale[3].valueChanged.connect(self.disableUpdate)
+        self.spinboxChannelScale[0].valueChangedDelayed.connect(self.channel1Scale)
+        self.spinboxChannelScale[1].valueChangedDelayed.connect(self.channel2Scale)
+        self.spinboxChannelScale[2].valueChangedDelayed.connect(self.channel3Scale)
+        self.spinboxChannelScale[3].valueChangedDelayed.connect(self.channel4Scale)
+    
+    def disableUpdate(self):
+        self.holdUpdate = True
+        self.enableUpdate = False
+
     def update(self, serverConfig={}):
+        if self.holdUpdate:
+            self.enableUpdate = True
+            return
+        if not self.enableUpdate:
+            return 
         if not serverConfig == {}:
             for i in range(4):
                 self.checkboxChannelDisplay[i].blockSignals(True)
                 self.spinboxChannelPosition[i].blockSignals(True)
                 self.spinboxChannelScale[i].blockSignals(True)
-                self.spinboxChannelPosition[i].setSingleStep(float(serverConfig[':CHANnel CH'+str(int(i+1))+':SCALe'])/25)
                 self.checkboxChannelDisplay[i].setCheckState(Qt.Checked if serverConfig[':CHANnel CH'+str(int(i+1))+':DISPlay'] == 'ON' else Qt.Unchecked)
+                self.spinboxChannelPosition[i].setSingleStep(float(serverConfig[':CHANnel CH'+str(int(i+1))+':SCALe'])/25)
                 self.spinboxChannelPosition[i].setValue(float(serverConfig[':CHANnel CH'+str(int(i+1))+':POSition']))
                 self.spinboxChannelScale[i].setValue(float(serverConfig[':CHANnel CH'+str(int(i+1))+':SCALe']))
                 self.checkboxChannelDisplay[i].blockSignals(False)
@@ -240,15 +219,19 @@ class widgetSectionChannelVerticalScale(QWidget):
 
     def channel1Position(self,pos):
         self.request.emit('CHANnelPOSition',['1',str(pos)])
+        self.holdUpdate = False
 
     def channel2Position(self,pos):
         self.request.emit('CHANnelPOSition',['2',str(pos)])
+        self.holdUpdate = False
 
     def channel3Position(self,pos):
         self.request.emit('CHANnelPOSition',['3',str(pos)])
+        self.holdUpdate = False
 
     def channel4Position(self,pos):
         self.request.emit('CHANnelPOSition',['4',str(pos)])
+        self.holdUpdate = False
 
     def channel1Scale(self,scale):
         self.request.emit('CHANnelSCALe',['1',str(scale)])
@@ -262,11 +245,11 @@ class widgetSectionChannelVerticalScale(QWidget):
     def channel4Scale(self,scale):
         self.request.emit('CHANnelSCALe',['4',str(scale)])
 
-
-
 class widgetSectionChannelControl(QWidget):
     request = pyqtSignal(str,object)
     serverConfig = {}
+    holdUpdate = False
+    enableUpdate = True
     def __init__(self):
         super(widgetSectionChannelControl, self).__init__()
         self.load_ui()
@@ -321,7 +304,7 @@ class widgetSectionChannelControl(QWidget):
         self.comboboxProbeType = QComboBox()
         self.comboboxProbeType.addItems(probetypeList)
 
-        self.spinboxProbeAttenuation = spinBoxWithPreset([0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50,100,200,500,1000]
+        self.spinboxProbeAttenuation = spinBoxWithPresetDelayedSignal([0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50,100,200,500,1000]
                                                     ,3,objectName='1')
         self.spinboxProbeAttenuation.lineEdit().setReadOnly(True)
 
@@ -355,20 +338,29 @@ class widgetSectionChannelControl(QWidget):
         self.comboboxChannelBW.currentTextChanged.connect(self.channelBW)
         self.comboboxChannelExpand.currentTextChanged.connect(self.channelExpand)
         self.comboboxProbeType.currentTextChanged.connect(self.channelType)
-        self.spinboxProbeAttenuation.valueChanged.connect(self.channelAttenuation)
+        self.spinboxProbeAttenuation.valueChanged.connect(self.disableUpdate)
+        self.spinboxProbeAttenuation.valueChangedDelayed.connect(self.channelAttenuation)
         self.spinboxDeskew.valueChanged.connect(self.channelDeskew)
 
     def updateChannel(self):
         self.channel = -(self.channelSelectionGroup.checkedId())-1
         self.update()
 
+    def disableUpdate(self):
+        self.holdUpdate = True
+        self.enableUpdate = False
+
     def update(self,serverConfig={}):
+        if self.holdUpdate:
+            self.enableUpdate = True
+            return
+        if not self.enableUpdate:
+            return 
         self.channel = -(self.channelSelectionGroup.checkedId())-1
         if not serverConfig == {}:
             self.serverConfig = serverConfig
         
         if not self.serverConfig == {}:
-            # print(self.serverConfig[':CHANnel CH2:COUPling'])
             indexCoupling = [ i for i, s in enumerate(["DC","AC","GND"]) if s == self.serverConfig[':CHANnel CH'+str(self.channel)+':COUPling'] ]
             indexInvert = [ i for i, s in enumerate(["ON","OFF"]) if s == self.serverConfig[':CHANnel CH'+str(self.channel)+':INVert'] ]
             indexBW = [ i for i, s in enumerate(["FULL","2E+7"]) if s == self.serverConfig[':CHANnel CH'+str(self.channel)+':BWLimit'] ]
@@ -419,6 +411,7 @@ class widgetSectionChannelControl(QWidget):
 
 class widgetSectionTimebase(QWidget):
     request = pyqtSignal(str,object)
+    holdUpdate = False
     enableUpdate = True
 
     def __init__(self):
@@ -455,7 +448,7 @@ class widgetSectionTimebase(QWidget):
         timebaseGeneralLayout.addWidget(self.comboboxTimebaseExpand,2,2)
 
         timebaseControlLayout = QGridLayout()
-        self.spinBoxTimebaseScale = spinBoxWithPreset(
+        self.spinBoxTimebaseScale = spinBoxWithPresetDelayedSignal(
             [5e-9,1e-8,2e-8,5e-8,1e-7,2e-7,5e-7,1e-6,2e-6,5e-6,
             1e-5,2e-5,5e-5,1e-4,2e-4,5e-4,1e-3,2e-3,5e-3,1e-2,2e-2,5e-2,
             1e-1,2e-1,5e-1,1e0,2e0,5e0,1e1,2e1,5e1,1e2],9,objectName='2')
@@ -467,7 +460,7 @@ class widgetSectionTimebase(QWidget):
         self.spinBoxTimebasePosition.setDecimals(9)
         self.spinBoxTimebasePosition.lineEdit().setReadOnly(True)
 
-        self.spinBoxTimebaseZoomScale = spinBoxWithPreset(
+        self.spinBoxTimebaseZoomScale = spinBoxWithPresetDelayedSignal(
             [5e-9,1e-8,2e-8,5e-8,1e-7,2e-7,5e-7,1e-6,2e-6,5e-6,
             1e-5,2e-5,5e-5,1e-4,2e-4,5e-4,1e-3,2e-3,5e-3,1e-2,2e-2,5e-2,
             1e-1,2e-1,5e-1,1e0,2e0,5e0,1e1,2e1,5e1,1e2],9,objectName='3')
@@ -507,17 +500,23 @@ class widgetSectionTimebase(QWidget):
     def connectActions(self):
         self.comboboxTimebaseMode.currentTextChanged.connect(self.timebaseMode)
         self.comboboxTimebaseExpand.currentTextChanged.connect(self.timebaseExpand)
-        self.spinBoxTimebaseScale.valueChanged.connect(self.timebaseMainScale)
+        self.spinBoxTimebaseScale.valueChanged.connect(self.disableUpdate)
+        self.spinBoxTimebaseScale.valueChangedDelayed.connect(self.timebaseMainScale)
         self.spinBoxTimebasePosition.valueChanged.connect(self.disableUpdate)
         self.spinBoxTimebasePosition.valueChangedDelayed.connect(self.timebaseMainPosition)
-        self.spinBoxTimebaseZoomScale.valueChanged.connect(self.timebaseZoomScale)
+        self.spinBoxTimebaseZoomScale.valueChanged.connect(self.disableUpdate)
+        self.spinBoxTimebaseZoomScale.valueChangedDelayed.connect(self.timebaseZoomScale)
         self.spinBoxTimebaseZoomPosition.valueChanged.connect(self.disableUpdate)
         self.spinBoxTimebaseZoomPosition.valueChangedDelayed.connect(self.timebaseZoomPosition)
 
     def disableUpdate(self):
+        self.holdUpdate = True
         self.enableUpdate = False
 
     def update(self,serverConfig={}):
+        if self.holdUpdate:
+            self.enableUpdate = True
+            return
         if not self.enableUpdate:
             return 
         if not serverConfig == {}:
@@ -553,10 +552,11 @@ class widgetSectionTimebase(QWidget):
 
     def timebaseMainPosition(self,position):
         self.request.emit('TIMebasePOSition',[str(position)])
-        self.enableUpdate = True
+        self.holdUpdate = False
 
     def timebaseZoomScale(self,scale):
         self.request.emit('TIMebaseWINDowSCALe',[str(scale)])
 
     def timebaseZoomPosition(self,position):
         self.request.emit('TIMebaseWINDowPOSition',[str(position)])
+        self.holdUpdate = False

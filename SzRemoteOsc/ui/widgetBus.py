@@ -17,4 +17,4 @@ class widgetBus(QWidget):
         self.setLayout(mainLayout)
         
     def minimumSizeHint(self) -> QSize:
-        return QSize(400, 30)
+        return QSize(500, 30)

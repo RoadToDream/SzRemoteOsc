@@ -8,19 +8,40 @@ from PyQt5.QtWidgets import (QLabel, QWidget, QPushButton, QVBoxLayout, QFrame,
 from PyQt5.QtGui import QPixmap, QImage
 
 
-class spinBoxWithPreset(QDoubleSpinBox):
+class spinBoxWithPresetDelayedSignal(QDoubleSpinBox):
+    valueChangedDelayed = pyqtSignal(float)
     def __init__(self,acceptedValues,decimals, objectName):
         super().__init__(objectName=objectName)
         self.acceptedValues = acceptedValues
         self.setDecimals(decimals)
         self.setRange(self.acceptedValues[0],self.acceptedValues[-1])
+        self.timer = QTimer()
+        self.timer.setSingleShot(True)
+        self.timer.setInterval(200)
+        self.valueChanged.connect(self.startTimer)
+        self.timer.timeout.connect(self.emitValueChanged)
+    
+    def startTimer(self):
+        self.timer.start()
 
-    def stepBy(self, steps: int) -> None:
+    def stepBy(self, steps: int):
         index = max(0,self.acceptedValues.index(self.value()) + steps)% len(self.acceptedValues)
         self.setValue(self.acceptedValues[index])
 
+    def textFromValue(self, value):
+        return "{:.3E}".format(value)
+
+    def valueFromTex(self, text):
+        return float(text)
+
+    def emitValueChanged(self):
+        self.valueChangedDelayed.emit(self.value())
+
 class spinBoxDelayedSignal(QDoubleSpinBox):
     valueChangedDelayed = pyqtSignal(float)
+    mouseStartPos = 0
+    startValue = 0
+
     def __init__(self):
         super().__init__()
         self.timer = QTimer()
@@ -32,9 +53,31 @@ class spinBoxDelayedSignal(QDoubleSpinBox):
     def startTimer(self):
         self.timer.start()
 
+    def textFromValue(self, value):
+        return "{:.3E}".format(value)
+
+    def valueFromTex(self, text):
+        return float(text)
+
+    def mousePressEvent(self, e):
+        super(spinBoxDelayedSignal, self).mousePressEvent(e)
+        if e.button() == Qt.MiddleButton:
+            self.setValue(0)
+        self.mouseStartPos = e.pos().y()
+        self.startValue = self.value()
+    
+    def mouseMoveEvent(self, e):
+        self.setCursor(Qt.SizeVerCursor)
+        valueOffset = int((self.mouseStartPos-e.pos().y()))*self.singleStep()
+        self.setValue(self.startValue+valueOffset)
+        return super().mouseMoveEvent(e)
+
+    def mouseReleaseEvent(self, e):
+        super(spinBoxDelayedSignal,self).mouseReleaseEvent(e)
+        self.unsetCursor()
+
     def emitValueChanged(self):
         self.valueChangedDelayed.emit(self.value())
-
 
 class sectionButton(QPushButton):
     def __init__(self, item, text = "", parent = None):

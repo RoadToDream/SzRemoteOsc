@@ -19,6 +19,9 @@ from PyQtAds import QtAds
 if sys.platform == 'darwin':
     os.environ['QT_MAC_WANTS_LAYER'] = '1'
 
+if sys.platform == 'win32':
+    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+
 from remoteOscServer import remoteOscServer
 import ui
 

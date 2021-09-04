@@ -8,7 +8,7 @@ import json
 import threading
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QImage
+from PyQt5.QtGui import QImage, qRgb
 
 from .helper import displayModify
 from common import lrnParser
@@ -24,6 +24,8 @@ class remoteOscServer(QObject):
     def __init__(self, setting):
         super().__init__()
         self.setting = setting
+        self.image = QImage(800,480,QImage.Format.Format_RGB888)
+        self.image.fill(qRgb(255,255,255))
 
     def resourcePath(self,relativePath):
         try:
@@ -40,12 +42,13 @@ class remoteOscServer(QObject):
             dev = 'TCPIP0::'+ipAddress+'::SOCKET'
             self.session = self.resourceManager.open_resource(dev)
             self.session.read_termination = '\n'
+            self.session.clear()
+
 
             length = 800*480*3
             self.data = bytes(bytearray(b'\x00'*length))
             self.pdata = ctypes.create_string_buffer(self.data, length)
             if sys.platform == 'darwin':
-                print(self.resourcePath('.'))
                 self.libc = ctypes.cdll.LoadLibrary(self.resourcePath('lib/libparseOutput.dylib'))
             elif sys.platform == 'win32':
                 self.libc = ctypes.cdll.LoadLibrary(self.resourcePath('lib/libparseOutput.dll'))
@@ -78,6 +81,7 @@ class remoteOscServer(QObject):
 
     @pyqtSlot()
     def requestCompleteConfig(self):
+        self.session.clear()
         result = self.session.query('*LRN?')
         config = lrnParser.lrnParser(result)
         self.resultCompleteConfig.emit(config)
@@ -104,19 +108,24 @@ class remoteOscServer(QObject):
 
     @pyqtSlot()
     def DISPlayOUTPut(self):
-        dataRec = self.session.query_binary_values(
+        self.session.clear()
+        try:
+            dataRec = self.session.query_binary_values(
             ':DISPlay:OUTPut?', datatype='c')
-        dataToC = b''.join(dataRec)
-        pToC = ctypes.create_string_buffer(dataToC, len(dataRec))
-        self.libc.parseOutput(pToC, self.pdata, len(dataRec))
-        im = np.frombuffer(
-            self.pdata.raw, dtype=np.uint8).reshape((480, 800, 3))
-        image = QImage(displayModify(im, 0.52, 10, 30),
-                       im.shape[1], im.shape[0], QImage.Format.Format_RGB888).convertToFormat(QImage.Format_ARGB32)
-        self.resultFrame.emit(image)
+            dataToC = b''.join(dataRec)
+            pToC = ctypes.create_string_buffer(dataToC, len(dataRec))
+            self.libc.parseOutput(pToC, self.pdata, len(dataRec))
+            im = np.frombuffer(
+                self.pdata.raw, dtype=np.uint8).reshape((480, 800, 3))
+            self.image = QImage(displayModify(im, 0.52, 10, 30),
+                        im.shape[1], im.shape[0], QImage.Format.Format_RGB888).convertToFormat(QImage.Format_ARGB32)
+            self.resultFrame.emit(self.image)
+        except:
+            self.resultFrame.emit(self.image)
 
     @pyqtSlot(str)
     def ACQuireMEMory(self, channel):
+        self.session.clear()
         self.session.write(':HEADer ON')
         resultAscii = self.session.query(':ACQuire'+channel+':MEMory?')
         resultBin = self.session.read_binary_values(
